@@ -1,0 +1,175 @@
+--TRIGGER--
+--MUESTRA EL HISTORIAL DE TODAS LAS ACTUALIZACIONES DE CONVENIO—
+
+Esta tabla se crea para actualizar convenio mediante TRIGGERS
+create table historialConvenio3 (
+fecha date,
+id_clientepk int,
+descripcion varchar(30))
+select * from historialConvenio3;
+-- ACTUALIZAR CONVENIO --
+go
+create or alter trigger TR_ConvenioActualizado 
+on Convenio for update 
+as
+set nocount on
+declare @id_clientepk int
+select @id_clientepk = id_clientepk  from inserted
+insert into historialConvenio3 values(GETDATE(),@id_clientepk,
+'Convenio Actualizado')
+go
+update Convenio set descripcion='Convenio/No' where 
+id_clientepk = 121 update Convenio set tiempo_Convenio='0 años' where id_clientepk = 121
+update Convenio set total=0 where id_clientepk = 121
+update Convenio set descripcion='Convenio/No' where 
+id_clientepk = 122 update Convenio set tiempo_Convenio='0 años' where id_clientepk = 122
+update Convenio set total=0 where id_clientepk = 122
+update Convenio set descripcion='Convenio/No' where 
+id_clientepk = 123 update Convenio set tiempo_Convenio='0 años' where id_clientepk = 123
+update Convenio set total=0 where id_clientepk = 123
+select *  from historialConvenio3
+select * from Convenio
+ 
+ 
+
+--CURSOR--
+--POR CADA CLIENTE ME SALGA LAS FACTURAS QUE HA PAGADO A TIEMPO, LAS FACTURAS QUE HA   PAGADO EN DESTIEMPO Y LOS INTERESES QUE HAN SIDO PAGADO POR ESE DESTIEMPO—
+
+declare  @nombres char(12),@fechaP char(12),@total char(12),@interes char(12),@Total_a_Pagar char(12)
+declare cursor2 cursor 
+for select c.nombres,f.fechaP,a.total,f.interes, sum(a.total+f.interes*3) as Total_a_Pagar from Factura as f 
+	join Consumo_de_Agua as a on a.id_Consumo=f.id_Consumopk
+    join Cliente as c on c.id_Cliente=a.id_clientepk where f.interes>0
+	group by c.nombres,f.fechaP,f.interes,a.total			
+open cursor2
+fetch cursor2 into  @nombres,@fechaP,@total,@interes,@Total_a_Pagar
+print 'Clientes que han pagado a Destiempo'
+print '------------------------------------'
+print 'Nombres          fechaP           total           interes          Total_a_Pagar  '
+print'----------------------------------------------------------------------------------'
+while @@FETCH_STATUS=0
+begin
+	print @nombres +space(5)+@fechaP +space(5)+@total +space(5)+@interes  +space(5)+@Total_a_Pagar+space(5)
+	fetch cursor2 into  @nombres,@fechaP,@total,@interes,@Total_a_Pagar
+	end
+	close cursor2
+	deallocate cursor2
+
+
+
+
+
+
+
+
+
+
+
+
+
+Pago a tiempo de clientes
+ 
+
+Pago a destiempo de clientes
+ 
+
+--PROCEDIMIENTO ALMACENADO--
+--QUE INSERTE EL NOMBRE DE UN TECNICO Y QUE SALGAN TODOS LOS CLIENTES A LOS QUE HA DADO MANTENIMIENTO-- 
+create procedure mante2
+  @nombre varchar(50) as
+  select t.nombreT as Tecnico,c.nombres as Cliente, count(m.id_clientepk) as Total_Mantenimiento from Mantenimiento as m
+  inner join Tecnico as t on t.id_Tecnico=m.id_tecnicopk
+  inner join Cliente as c on c.id_Cliente=m.id_clientepk
+  where t.nombreT=@nombre group by t.nombreT,c.nombres
+go
+exec mante2 'Alberto'
+ 
+ 
+IREPORT
+DIAGRAMA DE BARRAS POR AÑO EL TOTAL DE QUE SE HA INVERTIDO
+select case 
+when año=2019 then '2019'
+when año=2020 then '2020'
+when año=2021 then '2021'
+ end as Año,
+sum (total+interes) as Total_Por_Año
+from Factura,Consumo_de_Agua
+group by año
+ 
+CODIGO DE IREPORT
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="reportMauro" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="73e4d8ed-daba-4092-b791-da2254315608">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString language="SQL">
+		<![CDATA[select case
+when año=2019 then '2019'
+when año=2020 then '2020'
+when año=2021 then '2021'
+ end as Año,
+sum (total+interes) as Total_Por_Año
+from Factura,Consumo_de_Agua
+group by año]]>
+	</queryString>
+	<field name="Año" class="java.lang.String"/>
+	<field name="Total_Por_Año" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="109" splitType="Stretch">
+			<staticText>
+				<reportElement x="131" y="36" width="362" height="39" uuid="e33e6945-dfc4-4f59-9989-197bbd94ccc0"/>
+				<textElement>
+					<font size="28" isBold="true" isItalic="true" isUnderline="true" isStrikeThrough="false"/>
+				</textElement>
+				<text><![CDATA[Empresa de Agua Potable]]></text>
+			</staticText>
+			<image>
+				<reportElement x="36" y="17" width="75" height="92" uuid="bd351641-5bc6-45a3-a079-1bae6a5162bb"/>
+				<imageExpression><![CDATA["C:\\Users\\AMD A12\\Desktop\\agua.jpg"]]></imageExpression>
+			</image>
+		</band>
+	</title>
+	<detail>
+		<band height="242" splitType="Stretch">
+			<stackedBar3DChart>
+				<chart>
+					<reportElement x="84" y="19" width="382" height="188" uuid="5b2e8ff1-c705-4166-8651-d7ed3a80e6c5"/>
+					<chartTitle/>
+					<chartSubtitle/>
+					<chartLegend/>
+				</chart>
+				<categoryDataset>
+					<categorySeries>
+						<seriesExpression><![CDATA["Dummy Series"]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{Año}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{Total_Por_Año}]]></valueExpression>
+					</categorySeries>
+				</categoryDataset>
+				<bar3DPlot>
+					<plot/>
+					<itemLabel/>
+					<categoryAxisFormat>
+						<axisFormat/>
+					</categoryAxisFormat>
+					<valueAxisFormat>
+						<axisFormat/>
+					</valueAxisFormat>
+				</bar3DPlot>
+			</stackedBar3DChart>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="45" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>
+
+
